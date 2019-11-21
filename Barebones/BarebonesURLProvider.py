@@ -1,4 +1,4 @@
-#!/Library/AutoPkg/Python3/Python.framework/Versions/Current/bin/python3
+#!/usr/local/autopkg/python
 #
 # Copyright 2013 Timothy Sutton
 #
@@ -19,21 +19,20 @@
 import ssl
 from distutils.version import LooseVersion
 from functools import wraps
-from operator import itemgetter
 
+import certifi
 from autopkglib import Processor, ProcessorError
-from past.builtins import cmp
+
+try:
+    from urllib.request import urlopen  # For Python 3
+except ImportError:
+    from urllib2 import urlopen  # For Python 2
 
 try:
     from plistlib import readPlistFromString
 except ImportError:
     from plistlib import readPlistFromBytes as readPlistFromString
 
-
-try:
-    from urllib.parse import urlopen  # For Python 3
-except ImportError:
-    from urllib.request import urlopen  # For Python 2
 
 __all__ = ["BarebonesURLProvider"]
 
@@ -76,10 +75,6 @@ class BarebonesURLProvider(Processor):
     def main(self):
         """Find the download URL"""
 
-        def compare_version(this, that):
-            """compare LooseVersions"""
-            return cmp(LooseVersion(this), LooseVersion(that))
-
         prod = self.env.get("product_name")
         if prod not in URLS:
             raise ProcessorError(
@@ -87,7 +82,7 @@ class BarebonesURLProvider(Processor):
             )
         url = URLS[prod]
         try:
-            manifest_str = urlopen(url).read()
+            manifest_str = urlopen(url, cafile=certifi.where()).read()
         except Exception as err:
             raise ProcessorError(
                 f"Unexpected error retrieving product manifest: '{err}'"
@@ -105,9 +100,7 @@ class BarebonesURLProvider(Processor):
             raise ProcessorError("Expected 'SUFeedEntries' manifest key wasn't found.")
 
         sorted_entries = sorted(
-            entries,
-            key=itemgetter("SUFeedEntryShortVersionString"),
-            cmp=compare_version,
+            entries, key=lambda a: LooseVersion(a["SUFeedEntryShortVersionString"])
         )
         metadata = sorted_entries[-1]
         url = metadata["SUFeedEntryDownloadURL"]

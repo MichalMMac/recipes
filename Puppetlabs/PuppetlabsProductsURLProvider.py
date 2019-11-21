@@ -1,4 +1,4 @@
-#!/Library/AutoPkg/Python3/Python.framework/Versions/Current/bin/python3
+#!/usr/local/autopkg/python
 #
 # Copyright 2015 Timothy Sutton, w/ insignificant contributions by Allister Banks
 #
@@ -19,9 +19,15 @@
 import re
 from builtins import str
 from distutils.version import LooseVersion
-from urllib.parse import urlopen
 
+import certifi
 from autopkglib import Processor, ProcessorError
+
+try:
+    from urllib.request import urlopen  # For Python 3
+except ImportError:
+    from urllib2 import urlopen  # For Python 2
+
 
 __all__ = ["PuppetlabsProductsURLProvider"]
 
@@ -87,7 +93,7 @@ class PuppetlabsProductsURLProvider(Processor):
             )
 
         try:
-            data = urlopen(download_url).read()
+            data = urlopen(download_url, cafile=certifi.where()).read().decode()
         except Exception as err:
             raise ProcessorError(f"Unexpected error retrieving download index: '{err}'")
 

@@ -1,4 +1,4 @@
-#!/Library/AutoPkg/Python3/Python.framework/Versions/Current/bin/python3
+#!/usr/local/autopkg/python
 #
 # Copyright 2010 Per Olofsson
 #
@@ -17,11 +17,13 @@
 
 
 import json
-import urllib.error
-import urllib.parse
-import urllib.request
 
 from autopkglib import Processor, ProcessorError
+
+try:
+    from urllib.request import Request, urlopen  # For Python 3
+except ImportError:
+    from urllib import urlopen  # For Python 2
 
 
 __all__ = ["AdobeReaderURLProvider"]
@@ -76,10 +78,10 @@ class AdobeReaderURLProvider(Processor):
         """Returns download URL for Adobe Reader DMG"""
         # pylint: disable=no-self-use
         request_url = base_url % (os_version, language)
-        request = urllib.request.Request(request_url)
+        request = Request(request_url)
         request.add_header("x-requested-with", "XMLHttpRequest")
         try:
-            url_handle = urllib.request.urlopen(request)
+            url_handle = urlopen(request)
             json_response = url_handle.read()
             url_handle.close()
         except Exception as err:
